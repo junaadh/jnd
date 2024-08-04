@@ -2,14 +2,14 @@ use crate::{reg::Register, vme, Res};
 
 /// return-eq
 macro_rules! retq {
-    ($name: ident, $x: expr) => {
-        $x == $crate::op::Op::$name.as_u8()
-    };
+     ($name: ident, $x: expr) => {
+         $x == $crate::op::Op::$name.as_u8()
+     };
 
-    ($name:ident($($args:tt)*), $x: expr) => {
-        $x == $crate::op::Op::$name($($args)*).as_u8()
-    };
-}
+     ($name:ident($($args:tt)*), $x: expr) => {
+         $x == $crate::op::Op::$name($($args)*).as_u8()
+     };
+ }
 
 #[derive(Debug, PartialEq, PartialOrd)]
 #[repr(u8)]
@@ -66,3 +66,15 @@ impl Op {
         })
     }
 }
+
+// impl FromStr for Op {
+//     type Err = errors::Jerror;
+
+//     fn from_str(s: &str) -> Result<Self, Self::Err> {
+//         let byte = (match s.to_lowercase().as_str() {
+//             "nop" => Op::Nop,
+//             ""
+//             _ => return Err(vme!(UnknownInstruction, "instruction: {s}")),
+//         })
+//     }
+// }

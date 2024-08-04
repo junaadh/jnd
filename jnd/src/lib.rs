@@ -1,6 +1,7 @@
 pub mod disassembler;
 pub mod errors;
 pub mod interrupts;
+pub mod macros;
 pub mod mem;
 pub mod op;
 pub mod reg;
