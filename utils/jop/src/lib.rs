@@ -260,7 +260,7 @@ impl<'a> Ast<'a> {
             variant_opcodes,
             variant_tuples,
         } = self;
-        println!("{variant_tuples:#?}");
+        // println!("{variant_tuples:#?}");
 
         let code_enum = Self::impl_code_enum(&variant_names, &variant_opcodes);
         let codable_trait = Self::impl_codable_trait(name);
