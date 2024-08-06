@@ -1,4 +1,4 @@
-use crate::vm::Machine;
+use crate::{reg::Register, vm::Machine};
 
 pub trait Disassemble {
     fn print_reg(&self);
@@ -9,15 +9,10 @@ impl Disassemble for Machine {
     fn print_reg(&self) {
         println!("== Registers ==");
 
-        for (i, &reg) in ["a", "b", "c", "m", "sp", "pc", "bp", "flags"]
-            .iter()
-            .enumerate()
-        {
-            println!(
-                "  {reg:<7}: {}",
-                self.get_reg((i as u8).try_into().unwrap())
-            );
-        }
+        (0..8u8).for_each(|i| {
+            let reg = Register::try_from(i).unwrap();
+            println!("  {reg:<7}: {}", self.get_reg(reg));
+        });
 
         println!("===============");
     }

@@ -10,6 +10,10 @@ pub trait Codable {
     fn decode_arg(&self) -> u8;
 }
 
+pub trait WriteEncoded {
+    fn push_raw(&mut self, value: u16);
+}
+
 #[cfg(test)]
 mod test {
     use crate::reg::Register;

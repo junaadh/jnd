@@ -1,3 +1,4 @@
+use core::fmt;
 use std::str::FromStr;
 
 use crate::{asme, errors, vme};
@@ -55,6 +56,21 @@ impl FromStr for Register {
             "%flags" | "%FLAGS" => Register::Flags,
             _ => return Err(asme!(ParseReg, "found: {s}")),
         })
+    }
+}
+
+impl fmt::Display for Register {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::A => write!(f, "a"),
+            Self::B => write!(f, "b"),
+            Self::C => write!(f, "c"),
+            Self::M => write!(f, "m"),
+            Self::SP => write!(f, "sp"),
+            Self::PC => write!(f, "pc"),
+            Self::BP => write!(f, "bp"),
+            Self::Flags => write!(f, "flags"),
+        }
     }
 }
 

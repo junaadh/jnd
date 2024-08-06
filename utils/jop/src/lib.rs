@@ -253,6 +253,91 @@ impl<'a> Ast<'a> {
         }
     }
 
+    fn impl_assemble(names: &[&Ident], types: &[Vec<String>]) -> impl ToTokens {
+        let assembled = types
+            .iter()
+            .zip(names.iter())
+            .map(|(decode, variant)| {
+                let decode = decode.iter().map(|x| x.as_str()).collect::<Vec<_>>();
+                if decode.is_empty() {
+                    return quote! {
+                        Code::#variant => out.push_raw(Code::#variant as u16),
+                    };
+                }
+                match decode[..] {
+                    ["u8"] => quote! {
+                        Code::#variant => {
+                            crate::jassert!(word.len() >= 2, "expected: 2, found: {}", word.len())?;
+                            let arg = parse_numeric(word[1])?;
+                            out.push_raw((Code::#variant as u16).encode_op().encode_arg(arg));
+                        },
+
+                    },
+                    ["Register"] => quote! {
+                        Code::#variant => {
+                            crate::jassert!(word.len() >= 2, "expected: 2, found: {}", word.len())?;
+                            let reg = word[1].parse::<Register>()?;
+                            out.push_raw(
+                                (Code::#variant as u16)
+                                    .encode_op()
+                                    .encode_reg1(reg as u8),
+                            );
+                        },
+                    },
+                    ["Register", "Register"] => quote! {
+                        Code::#variant => {
+                            crate::jassert!(
+                                word[1..].len() >= 2,
+                                "expected: 1, found: {}",
+                                word[1..].len()
+                            )?;
+                            let r1 = word[1].parse::<Register>()?;
+                            let r2 = word[2].parse::<Register>()?;
+
+                            out.push_raw(
+                                (Code::#variant as u16)
+                                    .encode_op()
+                                    .encode_reg2(r1 as u8, r2 as u8),
+                            );
+                        },
+                    },
+                    _ => panic!("Dunno how to decode"),
+                }
+            })
+            .collect::<Vec<_>>();
+
+        quote! {
+            use crate::traits::WriteEncoded;
+
+            impl WriteEncoded for Vec<u8> {
+                fn push_raw(&mut self, value: u16) {
+                    self.push((value & 0xff) as u8);
+                    self.push((value >> 8) as u8);
+                }
+            }
+
+            fn parse_numeric(value: &str) -> crate::Res<u8> {
+                let (base, offset) = match value {
+                    x if &x[..2] == "0x" => (16, 2usize),
+                    x if &x[..1] == "b" => (2, 1usize),
+                    x if &x[..1] == "#" => (10, 1usize),
+                    _ => (16, 0),
+                };
+                u8::from_str_radix(&value[offset..], base).map_err(|x| crate::asme!(Parseu8, "{x}"))
+            }
+
+            impl Code {
+                pub fn assemble(&self, word: &[&str], out: &mut Vec<u8>) -> crate::Res<()> {
+                    match self {
+                        #(#assembled)*
+                    }
+
+                    Ok(())
+                }
+            }
+        }
+    }
+
     fn impl_codable(self) -> impl ToTokens {
         let Ast {
             name,
@@ -266,6 +351,7 @@ impl<'a> Ast<'a> {
         let codable_trait = Self::impl_codable_trait(name);
         let codable_encode = Self::impl_encode(name, &variant_names, &variant_tuples);
         let codable_decode = Self::impl_decode(name, &variant_names, &variant_tuples);
+        let codable_assemble = Self::impl_assemble(&variant_names, &variant_tuples);
 
         quote! {
             #code_enum
@@ -274,6 +360,7 @@ impl<'a> Ast<'a> {
 
             #codable_encode
             #codable_decode
+            #codable_assemble
         }
     }
 }

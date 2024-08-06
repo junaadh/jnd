@@ -1,3 +1,4 @@
+pub mod assembler;
 pub mod disassembler;
 pub mod errors;
 pub mod interrupts;

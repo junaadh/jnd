@@ -1,4 +1,5 @@
 use core::panic;
+use std::fmt;
 
 pub mod asme;
 pub mod vme;
@@ -25,6 +26,15 @@ impl Jerror {
         match self {
             Self::Asme(e) => Self::Asme(format!("{e}: {err}")),
             _ => panic!("This shouldnt happen. Jerror::asme shoudlnt access vme"),
+        }
+    }
+}
+
+impl fmt::Display for Jerror {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Vme(s) => write!(f, "JErr>Vm: {s}"),
+            Self::Asme(s) => write!(f, "JErr>Asm: {s}"),
         }
     }
 }
