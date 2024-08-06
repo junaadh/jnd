@@ -8,6 +8,11 @@ pub enum AsmErr {
     OpenFile,
     Parse,
     Write,
+    Parseu8,
+    Parseu16,
+    ParseStr,
+    MissingArg,
+    ParseReg,
 }
 
 impl Erroring for AsmErr {
@@ -17,6 +22,11 @@ impl Erroring for AsmErr {
             Self::OpenFile => "failed to open file",
             Self::Parse => "failed to parse token",
             Self::Write => "failed to write binary to stdout",
+            Self::Parseu8 => "failed to parse u8",
+            Self::Parseu16 => "failed to parse u16",
+            Self::ParseStr => "failed to parse &str",
+            Self::MissingArg => "incorrect number of arguments",
+            Self::ParseReg => "unknown register",
         }
     }
 }
@@ -36,6 +46,6 @@ macro_rules! asme {
 
     ($kind:ident, $($args:tt)*) => {{
         use $crate::errors::Erroring;
-        $crate::errors::Jerror::Vme(format!("{}: {}", $crate::errors::vme::AsmErr::$kind.err(), format_args!($($args)*)))
+        $crate::errors::Jerror::Vme(format!("{}: {}", $crate::errors::asme::AsmErr::$kind.err(), format_args!($($args)*)))
     }};
 }

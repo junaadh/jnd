@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::{
     disassembler::Disassemble,
     mem::{linear::LinearMemory, Addressable},
-    op::{Op, Parser},
+    op::Op,
     reg::Register,
     vme, Res,
 };
@@ -84,7 +84,7 @@ impl Machine {
         let instruction = self.mem_read2(pc)?;
         self.registers[Register::PC as usize] = pc + 2;
 
-        let op = instruction.parse()?;
+        let op = Op::try_from(instruction)?;
         match op {
             Op::Nop => Ok(()),
             Op::Push(val) => self.push(val as u16),

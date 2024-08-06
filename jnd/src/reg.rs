@@ -1,6 +1,8 @@
-use crate::{errors, op::Op, vme};
+use std::str::FromStr;
 
-#[derive(Debug, PartialEq, PartialOrd)]
+use crate::{asme, errors, vme};
+
+#[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
 pub enum Register {
     A,
     B,
@@ -38,14 +40,27 @@ impl TryFrom<u16> for Register {
     }
 }
 
+impl FromStr for Register {
+    type Err = errors::Jerror;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s {
+            "%a" | "%A" => Register::A,
+            "%b" | "%B" => Register::B,
+            "%c" | "%C" => Register::C,
+            "%m" | "%M" => Register::M,
+            "%sp" | "%SP" => Register::SP,
+            "%pc" | "%PC" => Register::PC,
+            "%bp" | "%BP" => Register::BP,
+            "%flags" | "%FLAGS" => Register::Flags,
+            _ => return Err(asme!(ParseReg, "found: {s}")),
+        })
+    }
+}
+
 #[macro_export]
 macro_rules! reg {
     ($kind: ident) => {{
         $crate::reg::Register::$kind as u8
     }};
-}
-
-pub trait Parser {
-    fn encode(&self) -> u16;
-    fn decode(&self) -> Op;
 }
