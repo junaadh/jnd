@@ -164,25 +164,55 @@ impl<'a> Ast<'a> {
     }
 
     fn impl_encode(name: &Ident, names: &[&Ident], types: &[Vec<String>]) -> impl ToTokens {
+        let mut impl_display = Vec::new();
         let encoded = types
             .iter()
             .zip(names.iter())
             .map(|(encode, variant)| {
                 let encode = encode.iter().map(|x| x.as_str()).collect::<Vec<_>>();
                 if encode.is_empty() {
+                    impl_display.push(quote! {
+                        #name::#variant => write!(f, "{}", stringify!(#variant)),
+                    });
                     return quote! {
                         #name::#variant => Code::#variant as u16,
                     };
                 }
                 match encode[..] {
-                    ["u8"] => quote! {
-                        #name::#variant(u) => Code::#variant as u16 | ((*u as u16) << 8),
+                    ["u8"] => {
+                        impl_display.push(quote! {
+                            #name::#variant(u) => write!(f, "{} #{u}\t; 0x{u:02x}", stringify!(#variant)),
+                        }); 
+                        quote! {
+                            #name::#variant(u) => Code::#variant as u16 | ((*u as u16) << 8),
+                        }
                     },
-                    ["Register"] => quote! {
-                        #name::#variant(r) => Code::#variant as u16 | ((*r as u16) << 8),
+                    ["i8"] => {
+                        impl_display.push(quote! {
+                            #name::#variant(i) => write!(f, "{} #{i}\t; 0x{i:02x}", stringify!(#variant)),
+                        }); 
+                        quote! {
+                            #name::#variant(i) => {
+                                let value = i.to_le_bytes();
+                                Code::#variant as u16 | (value[0] as u16) << 8
+                            },
+                        }
                     },
-                    ["Register", "Register"] => quote! {
-                        #name::#variant(r1,r2) => Code::#variant as u16 | ((*r1 as u16) << 8) | ((*r2 as u16) << 12),
+                    ["Register"] => {
+                        impl_display.push(quote! {
+                            #name::#variant(r1) => write!(f, "{} %{r1}", stringify!(#variant)),
+                        }); 
+                        quote! {
+                            #name::#variant(r) => Code::#variant as u16 | ((*r as u16) << 8),
+                        }
+                    },
+                    ["Register", "Register"] => {
+                        impl_display.push(quote! {
+                            #name::#variant(r1, r2) => write!(f, "{} %{r1} %{r2}", stringify!(#variant)),
+                        }); 
+                        quote! {
+                            #name::#variant(r1,r2) => Code::#variant as u16 | ((*r1 as u16) << 8) | ((*r2 as u16) << 12),
+                        }
                     },
                     _ => panic!("Dunno how to handle these"),
                 }
@@ -190,6 +220,14 @@ impl<'a> Ast<'a> {
             .collect::<Vec<_>>();
 
         quote! {
+            impl core::fmt::Display for #name {    
+                fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+                    match self {
+                        #( #impl_display )*
+                    }
+                }
+            }
+            
             impl #name {
                 pub fn encode(&self) -> u16 {
                     match self {
@@ -219,6 +257,12 @@ impl<'a> Ast<'a> {
                             #name::#variant(arg)
                         },
 
+                    },
+                    ["i8"] => quote! {
+                        Code::#variant => {
+                            let arg = i8::from_le_bytes([((value & 0xff00) >> 8) as u8]);
+                            #name::#variant(arg)
+                        }
                     },
                     ["Register"] => quote! {
                         Code::#variant => {
@@ -273,6 +317,17 @@ impl<'a> Ast<'a> {
                         },
 
                     },
+                    ["i8"] => quote! {
+                        Code::#variant => {
+                            crate::jassert!(word.len() >= 2, "expected: 2, found: {}", word.len())?;
+                            let arg = parse_numeric_signed(word[1])?;
+                            let mut bytes = [0u8; 2];
+                            bytes[0] = Code::#variant as u8;
+                            bytes[1] = arg as u8;
+                            out.push_raw(u16::from_le_bytes(bytes));
+                        },
+
+                    },
                     ["Register"] => quote! {
                         Code::#variant => {
                             crate::jassert!(word.len() >= 2, "expected: 2, found: {}", word.len())?;
@@ -324,6 +379,16 @@ impl<'a> Ast<'a> {
                     _ => (16, 0),
                 };
                 u8::from_str_radix(&value[offset..], base).map_err(|x| crate::asme!(Parseu8, "{x}"))
+            }
+
+            fn parse_numeric_signed(value: &str) -> crate::Res<i8> {
+                let (base, offset) = match value {
+                    x if &x[..2] == "0x" => (16, 2usize),
+                    x if &x[..1] == "b" => (2, 1usize),
+                    x if &x[..1] == "#" => (10, 1usize),
+                    _ => (16, 0),
+                };
+                i8::from_str_radix(&value[offset..], base).map_err(|x| crate::asme!(Parseu8, "{x}"))
             }
 
             impl Code {

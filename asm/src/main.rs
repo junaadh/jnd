@@ -23,7 +23,7 @@ fn main() -> Res<()> {
 
     for word in buf.trim().split("\n") {
         let word = word.split_whitespace().collect::<Vec<_>>();
-        if word[0] == ";" {
+        if word.is_empty() || word[0] == ";" {
             continue;
         }
 

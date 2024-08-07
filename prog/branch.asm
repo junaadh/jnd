@@ -1,0 +1,9 @@
+Push #1
+PopRegister %b
+IfZero %B
+BranchImm #4
+Push #43
+PopRegister %a
+Push #12
+PopRegister %m
+Interrupt f0

@@ -10,6 +10,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "dis"
+version = "0.1.0"
+dependencies = [
+ "jnd",
+]
+
+[[package]]
 name = "jnd"
 version = "0.1.0"
 dependencies = [

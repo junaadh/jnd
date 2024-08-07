@@ -4,7 +4,7 @@ use crate::{
     disassembler::Disassemble,
     mem::{linear::LinearMemory, Addressable},
     op::Op,
-    reg::Register,
+    reg::{RegFlag, Register},
     vme, Res,
 };
 
@@ -79,6 +79,10 @@ impl Machine {
         self.interrupt_map.insert(interrupt, int_fn);
     }
 
+    pub fn setuo_stack(&mut self, stack_bottom: u16) {
+        self.registers[Register::SP as usize] = stack_bottom;
+    }
+
     pub fn step(&mut self) -> Res<()> {
         let pc = self.registers[Register::PC as usize];
         let instruction = self.mem_read2(pc)?;
@@ -88,20 +92,49 @@ impl Machine {
         match op {
             Op::Nop => Ok(()),
             Op::Push(val) => self.push(val as u16),
+            Op::Pop => {
+                self.pop()?;
+                Ok(())
+            }
             Op::PopRegister(r) => {
                 let v = self.pop()?;
                 self.registers[r as usize] = v;
                 Ok(())
+            }
+            Op::PushRegister(r) => {
+                let v = self.registers[r as usize];
+                self.push(v)
             }
             Op::AddStack => {
                 let a = self.pop()?;
                 let b = self.pop()?;
                 self.push(a + b)
             }
+            Op::SubStack => {
+                let a = self.pop()?;
+                let b = self.pop()?;
+                self.push(a - b)
+            }
             Op::AddRegister(r1, r2) => {
                 self.registers[r1 as usize] += self.registers[r2 as usize];
                 Ok(())
-            } // _ => Err(format!("unknown operand: {op:?} at {pc}").into()),
+            }
+            Op::SubRegister(r1, r2) => {
+                self.registers[r1 as usize] -= self.registers[r2 as usize];
+                Ok(())
+            }
+            Op::IfZero(r) => {
+                if self.registers[r as usize] == 0 {
+                    self.registers[Register::Flags as usize] |= RegFlag::Compare as u16;
+                }
+                Ok(())
+            }
+            Op::BranchImm(i) => {
+                if self.registers[Register::Flags as usize] & (RegFlag::Compare as u16) != 0 {
+                    self.registers[Register::PC as usize] = pc.wrapping_add_signed(i as i16);
+                }
+                Ok(())
+            }
             Op::Interrupt(sig) => {
                 let int = self.get_interrupt_handler(sig as u16)?;
                 int(self)

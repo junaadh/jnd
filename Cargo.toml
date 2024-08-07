@@ -1,3 +1,3 @@
 [workspace]
-members = [ "asm","jnd", "utils/jop", "vm"]
+members = [ "asm", "dis","jnd", "utils/jop", "vm"]
 resolver = "2"

@@ -4,6 +4,11 @@ use std::str::FromStr;
 use crate::{asme, errors, vme};
 
 #[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
+pub enum RegFlag {
+    Compare = 0b0000_0001,
+}
+
+#[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
 pub enum Register {
     A,
     B,
@@ -74,9 +79,9 @@ impl fmt::Display for Register {
     }
 }
 
-#[macro_export]
-macro_rules! reg {
-    ($kind: ident) => {{
-        $crate::reg::Register::$kind as u8
-    }};
-}
+// #[macro_export]
+// macro_rules! reg {
+//     ($kind: ident) => {{
+//         $crate::reg::Register::$kind as u8
+//     }};
+// }

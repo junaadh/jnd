@@ -17,29 +17,9 @@ fn main() -> Res<()> {
 
     let mut vm = Machine::default();
     vm.insert_interrupt(0xf0_u16, halt);
+    vm.setuo_stack(0x900);
 
     vm.load_vector(&internal_buf, 0)?;
-
-    /*
-     * push 10
-     * push 8
-     * addstack
-     * popregister
-     */
-
-    // vm.mem_write(0, 0x1)?;
-    // vm.mem_write(1, 10)?;
-    // vm.mem_write(2, 0x1)?;
-    // vm.mem_write(3, 8)?;
-    // vm.mem_write(4, 0x3)?;
-    // vm.mem_write(6, 0x2)?;
-    // vm.mem_write(7, 0x0)?;
-
-    // vm.step()?;
-    // vm.step()?;
-    // vm.step()?;
-    // vm.step()?;
-
     vm.execute()?;
     println!("A = {}", vm.get_reg(jnd::reg::Register::A));
 
